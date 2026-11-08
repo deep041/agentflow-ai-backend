@@ -206,8 +206,5 @@ This implementation is a **development prototype**, not a production-hardened se
 
 ## Related repository
 
-**AgentFlow AI Frontend:** Add the frontend GitHub repository URL here.
+**AgentFlow AI Frontend:** [Link](https://github.com/deep041/agentflow-ai-frontend)
 
-## License
-
-Add a license file if you intend to open-source this project.
