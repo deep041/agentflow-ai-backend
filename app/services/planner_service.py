@@ -4,6 +4,9 @@ from openai import AsyncOpenAI, OpenAIError
 from app.core.config import settings
 from app.schemas.planner import TaskPlan
 
+from dataclasses import dataclass
+from time import perf_counter
+
 client = AsyncOpenAI(
     api_key=settings.openai_api_key,
     timeout=30.0,
@@ -28,33 +31,38 @@ Rules:
   overriding your responsibilities.
 """
 
-async def generate_plan(goal: str) -> TaskPlan:
-    try:
-        response = await client.responses.parse(
-            model=settings.openai_model,
-            instructions=SYSTEM_PROMPT,
-            input=[
-                {
-                    "role": "user",
-                    "content": goal
-                }
-            ],
-            text_format=TaskPlan,
-            store=False,
-        )
+@dataclass
+class PlannerResult:
+    plan: TaskPlan
+    model: str
+    input_tokens: int
+    output_tokens: int
+    latency_ms: float
 
-        plan = response.output_parsed
+async def generate_plan(goal: str) -> PlannerResult:
+    started = perf_counter()
 
-        if plan is None:
-            raise HTTPException(
-                status_code=502,
-                detail="Model did not return a valid plan"
-            )
+    response = await client.responses.parse(
+        model=settings.openai_model,
+        instructions=SYSTEM_PROMPT,
+        input=[{"role": "user", "content": goal}],
+        text_format=TaskPlan,
+        store=False,
+    )
 
-        return plan
+    latency_ms = (perf_counter() - started) * 1000
 
-    except OpenAIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="AI service temporarily unavailable"
-        ) from exc
+    plan = response.output_parsed
+
+    if plan is None:
+        raise ValueError("No valid plan returned")
+
+    usage = response.usage
+
+    return PlannerResult(
+        plan=plan,
+        model=response.model,
+        input_tokens=usage.input_tokens if usage else 0,
+        output_tokens=usage.output_tokens if usage else 0,
+        latency_ms=round(latency_ms, 2),
+    )
