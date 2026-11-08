@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.planner import router as planner_router
+from app.api.routes.tasks import router as tasks_router
 
 app = FastAPI(
     title="AgentFlow AI API",
@@ -16,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(planner_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health():
